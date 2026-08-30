@@ -7,7 +7,13 @@ set -euo pipefail
 
 REPO="end-4/dots-hyprland"
 STATE_FILE="$HOME/.cache/ii-update-check/last-seen-sha"
-mkdir -p "$(dirname "$STATE_FILE")"
+STATUS_FILE="$HOME/.local/state/ii-update-check/status.json"
+mkdir -p "$(dirname "$STATE_FILE")" "$(dirname "$STATUS_FILE")"
+
+write_status() {
+  printf '{"last_run":"%s","latest_sha":"%s","has_update":%s}\n' \
+    "$(date -Iseconds)" "$1" "$2" > "$STATUS_FILE"
+}
 
 LATEST_SHA=$(curl -fsS "https://api.github.com/repos/$REPO/commits/main" \
   -H "Accept: application/vnd.github+json" | jq -r '.sha')
@@ -20,6 +26,7 @@ fi
 if [ ! -f "$STATE_FILE" ]; then
   echo "$LATEST_SHA" > "$STATE_FILE"
   echo "First run: recorded $LATEST_SHA as baseline, no notification sent."
+  write_status "$LATEST_SHA" false
   exit 0
 fi
 
@@ -33,6 +40,8 @@ if [ "$LATEST_SHA" != "$LAST_SHA" ]; then
       "$REPO has new commits ($SHORT). Check the changelog before pulling: https://github.com/$REPO/commits/main"
   fi
   echo "$LATEST_SHA" > "$STATE_FILE"
+  write_status "$LATEST_SHA" true
 else
   echo "No new commits on $REPO main."
+  write_status "$LATEST_SHA" false
 fi
