@@ -1,0 +1,6 @@
+[Unit]
+Description=Check for new commits on end-4/dots-hyprland (illogical-impulse)
+
+[Service]
+Type=oneshot
+ExecStart=%h/Projects/ii-update-check/check-ii-update.sh
