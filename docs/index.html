@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ii-update-check</title>
+<meta name="description" content="ii-update-check pages you when end-4/dots-hyprland gets new commits. It never pulls or applies anything.">
+<meta property="og:title" content="ii-update-check">
+<meta property="og:description" content="A pager for your dotfiles. Beep, there are new commits.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='3' y='7' width='26' height='18' rx='4' fill='%23222'/><rect x='6' y='10' width='20' height='8' fill='%23b8c79a'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;700&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f1ede4; --bg2:#e6e0d3; --ink:#1d1d1b; --ink2:#5a574f; --line:#cfc8b8;
+    --lcd:#b8c79a; --lcd-ink:#26301a; --plastic:#232323; --plastic2:#383838; --led:#ff3b30; --amber:#f5a524;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Space Grotesk',system-ui,sans-serif; -webkit-font-smoothing:antialiased;}
+  body::before{content:''; position:fixed; inset:0; pointer-events:none; background-image:radial-gradient(rgba(0,0,0,.06) 1px, transparent 1px); background-size:14px 14px;}
+  a{color:inherit;}
+  .wrap{max-width:1100px; margin:0 auto; padding-inline:clamp(16px,4vw,40px); position:relative;}
+  .pix{font-family:'Silkscreen',monospace;}
+
+  nav{display:flex; justify-content:space-between; align-items:center; padding-block:22px;}
+  .logo{font-family:'Silkscreen'; font-size:1rem; text-decoration:none; display:flex; align-items:center; gap:10px;}
+  .logo i{width:10px; height:10px; border-radius:50%; background:var(--led); box-shadow:0 0 10px var(--led); animation: blink 1.2s steps(1) infinite;}
+  @keyframes blink{ 50%{opacity:.15;} }
+  nav a.gh{font-weight:700; text-decoration:none; padding:10px 16px; border:2px solid var(--ink); border-radius:10px; box-shadow:3px 3px 0 var(--ink); transition: transform .1s, box-shadow .1s;}
+  nav a.gh:hover{transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--ink);}
+
+  .hero{display:grid; grid-template-columns:1fr 1fr; gap:50px; align-items:center; padding-block:50px 70px;}
+  h1{font-size:clamp(2.6rem,6vw,5rem); line-height:.95; letter-spacing:-.04em; margin:0 0 18px; font-weight:700;}
+  h1 span{font-family:'VT323'; font-weight:400; letter-spacing:0; background:var(--lcd); color:var(--lcd-ink); padding:0 .15em; border-radius:6px; font-size:1.12em;}
+  .lede{font-size:1.15rem; line-height:1.6; color:var(--ink2); margin:0 0 26px; max-width:44ch;}
+  .tag{font-family:'Silkscreen'; font-size:.7rem; color:var(--ink2); margin-bottom:14px; display:block;}
+
+  /* the pager */
+  .pager-wrap{display:grid; place-items:center; perspective:900px;}
+  .pager{width:min(420px,92vw); padding:22px 22px 26px; border-radius:30px 30px 40px 40px; background:linear-gradient(170deg,var(--plastic2),var(--plastic) 45%); box-shadow: 0 40px 60px -20px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.08), inset 0 -6px 0 rgba(0,0,0,.35); transform:rotateX(8deg) rotateZ(-3deg); transition: transform .3s;}
+  .pager.buzz{animation: buzz .09s linear 8;}
+  @keyframes buzz{ 0%{transform:rotateX(8deg) rotateZ(-3deg) translateX(-3px);} 50%{transform:rotateX(8deg) rotateZ(-2deg) translateX(3px);} 100%{transform:rotateX(8deg) rotateZ(-3deg) translateX(-3px);} }
+  .pager .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;}
+  .pager .brand{font-family:'Silkscreen'; font-size:.66rem; color:#8a8a8a; letter-spacing:.2em;}
+  .pager .led{width:10px; height:10px; border-radius:50%; background:#511; transition: background .2s, box-shadow .2s;}
+  .pager .led.on{background:var(--led); box-shadow:0 0 14px var(--led);}
+  .lcd{background:linear-gradient(180deg,#c3d1a6,var(--lcd)); border-radius:10px; padding:14px 16px; box-shadow:inset 0 3px 8px rgba(0,0,0,.35); font-family:'VT323'; color:var(--lcd-ink); min-height:150px; position:relative; overflow:hidden;}
+  .lcd::after{content:''; position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px); background-size:4px 4px;}
+  .lcd .row1{display:flex; justify-content:space-between; font-size:1.1rem; opacity:.75;}
+  .lcd .msg{font-size:2.1rem; line-height:1; margin:8px 0 6px;}
+  .lcd .sub{font-size:1.25rem; line-height:1.15; white-space:nowrap; overflow:hidden;}
+  .lcd .sub span{display:inline-block; padding-left:100%; animation: scroll 9s linear infinite;}
+  @keyframes scroll{ to{transform:translateX(-100%);} }
+  .keys{display:flex; justify-content:space-between; margin-top:16px; padding:0 6px;}
+  .key{width:64px; height:30px; border-radius:15px; border:none; background:linear-gradient(180deg,#4a4a4a,#2c2c2c); box-shadow:0 3px 0 #111; color:#aaa; font-family:'Silkscreen'; font-size:.6rem; cursor:pointer;}
+  .key:active{transform:translateY(3px); box-shadow:none;}
+  .clip{width:46%; height:16px; margin:0 auto -8px; border-radius:8px 8px 0 0; background:#1a1a1a;}
+
+  section{padding-block:70px; border-top:2px solid var(--ink);}
+  .sh{font-size:clamp(2rem,4.6vw,3.4rem); letter-spacing:-.03em; line-height:1; margin:0 0 14px; font-weight:700;}
+  .sp{color:var(--ink2); font-size:1.08rem; line-height:1.65; max-width:60ch; margin:0 0 36px;}
+  .three{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .box{border:2px solid var(--ink); border-radius:16px; padding:22px; background:#fbf9f4; box-shadow:5px 5px 0 var(--ink);}
+  .box .n{font-family:'Silkscreen'; font-size:.75rem; display:inline-block; padding:4px 8px; background:var(--ink); color:var(--bg); border-radius:6px; margin-bottom:14px;}
+  .box h3{margin:0 0 8px; font-size:1.2rem;} .box p{margin:0; color:var(--ink2); line-height:1.55;}
+  .box code{font-family:'VT323'; font-size:1.1rem; background:var(--bg2); padding:1px 6px; border-radius:4px;}
+  .nope{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .nope div{padding:22px; border-radius:16px; border:2px dashed var(--line);}
+  .nope div.yes{border:2px solid var(--ink); background:var(--lcd); color:var(--lcd-ink);}
+  .nope h3{margin:0 0 10px; font-family:'Silkscreen'; font-size:.9rem;}
+  .nope li{margin-bottom:6px; line-height:1.5;}
+  .toast{max-width:420px; display:flex; gap:14px; align-items:flex-start; background:#1e1d24; color:#eee; border-radius:18px; padding:16px 18px; box-shadow:0 20px 40px rgba(0,0,0,.25); margin-top:10px;}
+  .toast .ic{width:40px; height:40px; border-radius:12px; background:#cdbdff; color:#24104f; display:grid; place-items:center; font-weight:700; flex:0 0 auto;}
+  .toast b{display:block; margin-bottom:3px;} .toast span{font-size:.9rem; opacity:.75;}
+  pre{background:var(--ink); color:#e7e2d6; border-radius:16px; padding:20px; overflow:auto; font-family:'VT323'; font-size:1.2rem; line-height:1.35;}
+  pre .c{color:#8d877a;}
+  footer{border-top:2px solid var(--ink); padding-block:30px 60px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; color:var(--ink2);}
+  .reveal{opacity:0; transform:translateY(18px); transition: all .6s cubic-bezier(.2,.8,.2,1);} .reveal.in{opacity:1; transform:none;}
+  @media (max-width:860px){ .hero, .three, .nope{grid-template-columns:1fr;} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} .reveal{opacity:1; transform:none;} }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <nav><a class="logo" href="#"><i></i>ii-update-check</a><a class="gh" href="https://github.com/rusty-workshop/ii-update-check">GitHub ↗</a></nav>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <span class="tag">// for end-4/dots-hyprland</span>
+      <h1>A pager for your <span>dotfiles.</span></h1>
+      <p class="lede">The illogical-impulse dots move fast. ii-update-check checks once a day and gives you a heads-up when there are new commits. It never pulls, never installs, never touches your system. It just beeps.</p>
+      <div class="toast reveal"><div class="ic">ii</div><div><b>dots-hyprland has new commits</b><span>main moved 4 commits since you last looked · click to open the log</span></div></div>
+    </div>
+    <div class="pager-wrap">
+      <div>
+        <div class="clip"></div>
+        <div class="pager" id="pager">
+          <div class="top"><span class="brand">II-PAGE 2000</span><span class="led" id="pagerLed"></span></div>
+          <div class="lcd">
+            <div class="row1"><span id="pagerTime">09:00</span><span>▮▮▮▯ ✉ 1</span></div>
+            <div class="msg" id="pagerMsg">NO NEW COMMITS</div>
+            <div class="sub"><span id="pagerSub">end-4/dots-hyprland is quiet today ... checking again tomorrow ...</span></div>
+          </div>
+          <div class="keys"><button class="key" id="keyCheck" type="button">CHECK</button><button class="key" id="keyRead" type="button">READ</button><button class="key" id="keyClr" type="button">CLR</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="wrap">
+    <h2 class="sh reveal">How it works.</h2>
+    <p class="sp reveal">One shell script and a systemd timer. That's the whole thing.</p>
+    <div class="three">
+      <div class="box reveal"><span class="n">01 BASELINE</span><h3>Remember where you are</h3><p>The first run records the current upstream commit and stays quiet. No alert for history you've already seen.</p></div>
+      <div class="box reveal"><span class="n">02 COMPARE</span><h3>Check once a day</h3><p>Each run compares upstream <code>main</code> against the last-seen commit kept in <code>~/.cache</code>.</p></div>
+      <div class="box reveal"><span class="n">03 BEEP</span><h3>Tell you, then stop</h3><p>If it moved, a desktop notification links straight to the commit log. What you do next is up to you.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2 class="sh reveal">Why it doesn't update for you.</h2>
+    <p class="sp reveal">The ii installer touches system packages and configs. That's not something to run unattended at 3am. So this tool's job ends at "hey, look".</p>
+    <div class="nope">
+      <div class="reveal"><h3>✗ NEVER</h3><ul><li>runs the installer</li><li>pulls or merges anything</li><li>needs root</li><li>needs a GitHub account or token</li></ul></div>
+      <div class="yes reveal"><h3>✓ ALWAYS</h3><ul><li>tells you when upstream moved</li><li>links you to exactly what changed</li><li>lets you decide when to update</li><li>stays out of the way otherwise</li></ul></div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2 class="sh reveal">Install.</h2>
+<pre class="reveal">git clone https://github.com/rusty-workshop/ii-update-check
+cd ii-update-check
+./check-ii-update.sh              <span class="c"># first run: records a baseline</span>
+mkdir -p ~/.config/systemd/user
+cp systemd/ii-update-check.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now ii-update-check.timer</pre>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>AGPL-3.0-or-later. For <a href="https://github.com/end-4/dots-hyprland">end-4/dots-hyprland</a>, not affiliated.</span>
+  <span>Made by <a href="https://rusty.is-a.dev">Rusty</a> · see also <a href="https://ii-snap.rusty.is-a.dev">ii-snap</a></span>
+</footer>
+
+<script>
+(function(){
+  var pager = document.getElementById('pager'), led = document.getElementById('pagerLed');
+  var msg = document.getElementById('pagerMsg'), sub = document.getElementById('pagerSub');
+  var COMMITS = ['fix(bar): workspace indicator overflow', 'feat(quickshell): new lock screen blur', 'chore: bump matugen templates', 'fix(hypr): keybind conflict on SUPER+V'];
+  var paged = false;
+  function clock(){ var d = new Date(); document.getElementById('pagerTime').textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  clock(); setInterval(clock, 20000);
+  function beep(){
+    try{
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, .18].forEach(function(t){
+        var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'square'; o.frequency.value = 2400;
+        g.gain.setValueAtTime(.04, ctx.currentTime + t); g.gain.setValueAtTime(0, ctx.currentTime + t + .1);
+        o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .12);
+      });
+    } catch(e){}
+  }
+  function page(sound){
+    paged = true;
+    msg.textContent = '4 NEW COMMITS';
+    sub.textContent = 'end-4/dots-hyprland main · ' + COMMITS.join(' · ') + ' · ';
+    led.classList.add('on');
+    pager.classList.remove('buzz'); void pager.offsetWidth; pager.classList.add('buzz');
+    if (sound) beep();
+  }
+  function clear(){ paged = false; msg.textContent = 'NO NEW COMMITS'; sub.textContent = 'end-4/dots-hyprland is quiet today ... checking again tomorrow ...'; led.classList.remove('on'); }
+  document.getElementById('keyCheck').addEventListener('click', function(){ msg.textContent = 'CHECKING...'; setTimeout(function(){ page(true); }, 700); });
+  document.getElementById('keyRead').addEventListener('click', function(){ if (paged) window.open('https://github.com/end-4/dots-hyprland/commits/main', '_blank', 'noopener'); else { msg.textContent = 'NOTHING TO READ'; setTimeout(clear, 1200); } });
+  document.getElementById('keyClr').addEventListener('click', clear);
+  setTimeout(function(){ page(false); }, 2500);
+
+  var io = new IntersectionObserver(function(es){ es.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } }); }, {threshold:.15});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+})();
+</script>
+</body>
+</html>

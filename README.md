@@ -1,7 +1,7 @@
 # ii-update-check
 
 Notifies when [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
-(the illogical-impulse dots Rusty daily-drives) has new commits on `main`.
+(the illogical-impulse dots I daily-drive) has new commits on `main`.
 Doesn't pull or apply anything — the installer touches system packages and
 configs, which isn't something to run unattended. Just a heads-up so
 updates don't happen invisibly.
@@ -25,3 +25,7 @@ cp systemd/ii-update-check.{service,timer} ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now ii-update-check.timer
 ```
+
+## License
+
+AGPL-3.0-or-later.
